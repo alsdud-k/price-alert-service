@@ -5,9 +5,29 @@
 ## 기술 스택
 
 - 프론트엔드: React Native, Expo Router, TypeScript
-- 백엔드: Spring Boot, Spring Web, Spring Data JPA
-- 데이터베이스: MySQL 8.4
-- 인프라: Docker Compose
+- 백엔드: Spring Boot, Spring Web, Spring Data JPA, Jsoup(크롤링), Spring Scheduler
+- 데이터베이스: 개발용 H2(인메모리), 운영 전환용 MySQL 8.4
+- 인프라: Docker Compose(MySQL)
+
+## 주요 기능 API
+
+| 기능 | 메서드 | 경로 |
+| --- | --- | --- |
+| 관심 상품 등록(등록 시 현재가 크롤링) | POST | `/api/products` |
+| 상품 목록 조회 | GET | `/api/products` |
+| 목표 가격 수정 | PATCH | `/api/products/{id}/target-price` |
+| 상품 삭제 | DELETE | `/api/products/{id}` |
+| 가격 변동 이력(그래프용) | GET | `/api/products/{id}/price-history` |
+| 알림 내역 조회(최신순) | GET | `/api/alerts` |
+| 알림 읽음 처리 | PATCH | `/api/alerts/{id}/read` |
+| 가격 즉시 재체크(개발용) | POST | `/api/price-check` |
+
+가격 체크 스케줄러는 30분마다 `alertEnabled=true` 상품을 재크롤링하여
+`현재가 <= 목표가` 이면 알림을 생성합니다. 크롤링 실패 상품은 로그만 남기고 스킵합니다.
+
+> 개발 시 백엔드는 H2 인메모리 DB로 바로 실행됩니다(MySQL/Docker 불필요).
+> H2 콘솔: `http://localhost:8080/h2-console` (JDBC URL `jdbc:h2:mem:price_tracker`).
+> MySQL로 전환하려면 `./gradlew bootRun --args='--spring.profiles.active=mysql'` 로 실행합니다.
 
 ## 프로젝트 구조
 
