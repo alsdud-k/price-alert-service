@@ -1,6 +1,8 @@
 spring:
   application:
     name: backend
+  profiles:
+    active: mysql
 
   # 개발용 기본 DB는 H2 인메모리 (별도 설치/도커 불필요)
   datasource:
