@@ -25,9 +25,10 @@
 가격 체크 스케줄러는 30분마다 `alertEnabled=true` 상품을 재크롤링하여
 `현재가 <= 목표가` 이면 알림을 생성합니다. 크롤링 실패 상품은 로그만 남기고 스킵합니다.
 
-> 개발 시 백엔드는 H2 인메모리 DB로 바로 실행됩니다(MySQL/Docker 불필요).
+> 기본 프로파일은 MySQL입니다. 실행 전 `docker compose up -d`로 로컬 MySQL을 먼저 띄워야 합니다.
+> H2(인메모리)로 실행하려면 `application.yml`의 `spring.profiles.active: mysql`을 주석 처리하거나,
+> `./gradlew bootRun --args='--spring.profiles.active='` 처럼 프로파일을 비워서 실행합니다.
 > H2 콘솔: `http://localhost:8080/h2-console` (JDBC URL `jdbc:h2:mem:price_tracker`).
-> MySQL로 전환하려면 `./gradlew bootRun --args='--spring.profiles.active=mysql'` 로 실행합니다.
 
 ## 프로젝트 구조
 
