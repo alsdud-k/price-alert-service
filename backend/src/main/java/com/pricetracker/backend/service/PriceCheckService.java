@@ -44,8 +44,9 @@ public class PriceCheckService {
 		// 2) 현재가 갱신
 		product.setCurrentPrice(price);
 
-		// 3) 목표가 이하이면 알림 생성
-		if (product.getTargetPrice() != null && price <= product.getTargetPrice()) {
+		// 3) 목표가 이하이고, 아직 읽지 않은 알림이 없을 때만 알림 생성 (중복 알림 방지)
+		if (product.getTargetPrice() != null && price <= product.getTargetPrice()
+				&& !alertRepository.existsByProductIdAndIsReadFalse(product.getId())) {
 			alertRepository.save(new Alert(product, price, product.getTargetPrice()));
 			log.info("알림 생성 - productId={}, price={}, targetPrice={}",
 				product.getId(), price, product.getTargetPrice());
