@@ -35,6 +35,9 @@ app:
     # 크롤링 시 사용할 User-Agent 및 timeout(ms)
     user-agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     timeout-ms: 5000
+  auth:
+    token-secret: ${AUTH_TOKEN_SECRET:change-this-dev-secret}
+    token-expiration-seconds: ${AUTH_TOKEN_EXPIRATION_SECONDS:86400}
 
 ---
 # MySQL 전환 시: --spring.profiles.active=mysql 로 실행

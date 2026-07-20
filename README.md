@@ -14,6 +14,8 @@
 | 기능 | 메서드 | 경로 |
 | --- | --- | --- |
 | 서버 상태 확인 | GET | `/api/health` |
+| 회원가입 | POST | `/api/auth/signup` |
+| 로그인 | POST | `/api/auth/login` |
 | 등록 전 현재가 확인 | POST | `/api/price-check/preview` |
 | 관심 상품 등록(등록 시 현재가 크롤링) | POST | `/api/products` |
 | 상품 목록 조회 | GET | `/api/products` |
