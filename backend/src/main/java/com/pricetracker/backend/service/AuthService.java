@@ -57,6 +57,11 @@ public class AuthService {
 		return toAuthResponse(user);
 	}
 
+	/** 로그아웃 */
+	public void logout() {
+		// 현재 토큰은 서버에 저장하지 않으므로, 클라이언트 세션 삭제로 로그아웃을 완료한다.
+	}
+
 	private AuthResponse toAuthResponse(User user) {
 		return AuthResponse.bearer(
 			authTokenService.createToken(user),

@@ -9,9 +9,11 @@ import { useNavigation } from '@react-navigation/native';
 import ScreenHeader from '../components/ScreenHeader';
 import SectionBand from '../components/SectionBand';
 import StatBox from '../components/StatBox';
+import ConfirmModal from '../components/ConfirmModal';
+import { logoutUser } from '../api/client';
 import { SURFACE, LINE, TEXT, POINT } from '../colors';
 import { WatchlistContext } from '../store/WatchlistContext';
-import { clearAuthSession, getCurrentUser } from '../store/AuthSession';
+import { clearAuthSession, getAuthSession, getCurrentUser } from '../store/AuthSession';
 
 // 설정 메뉴 목록 (앱에 고정된 항목이라 백엔드 데이터가 아님)
 const menuList = [
@@ -32,6 +34,7 @@ function MyPageScreen() {
 
   // 내 정보(아이디·이메일)
   const [profile, setProfile] = useState({ userId: '', email: '' });
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   // 화면이 처음 그려질 때 내 정보를 불러옴
   useEffect(function () {
@@ -59,20 +62,27 @@ function MyPageScreen() {
   }
 
   // 로그아웃을 확정했을 때 로그인 화면으로 되돌림
-  function handleConfirmLogout() {
+  async function handleConfirmLogout() {
+    setIsLogoutModalOpen(false);
+    const auth = getAuthSession();
+    try {
+      await logoutUser(auth ? auth.accessToken : null);
+    } catch (error) {
+      console.warn('로그아웃 API 호출 실패:', error.message);
+    }
+
     clearAuthSession();
     // 마이페이지는 메인 탭 안에 있으므로, 한 단계 위(RootStack)를 가져옴
     const rootNavigation = navigation.getParent();
     // '인증' 묶음(로그인부터 시작)으로 새로 깔아서 뒤로가기로 못 돌아가게 함
-    rootNavigation.reset({ index: 0, routes: [{ name: '인증' }] });
+    if (rootNavigation) {
+      rootNavigation.reset({ index: 0, routes: [{ name: '인증' }] });
+    }
   }
 
   // 로그아웃 버튼을 눌렀을 때 실행 (한 번 더 확인)
   function handlePressLogout() {
-    Alert.alert('로그아웃', '정말 로그아웃할까요?', [
-      { text: '취소', style: 'cancel' },
-      { text: '로그아웃', style: 'destructive', onPress: handleConfirmLogout },
-    ]);
+    setIsLogoutModalOpen(true);
   }
 
   return (
@@ -125,6 +135,17 @@ function MyPageScreen() {
           <Text style={styles.logoutText}>로그아웃</Text>
         </TouchableOpacity>
       </ScrollView>
+      <ConfirmModal
+        visible={isLogoutModalOpen}
+        title="로그아웃"
+        message="정말 로그아웃할까요?"
+        cancelText="취소"
+        confirmText="로그아웃"
+        onCancel={function () {
+          setIsLogoutModalOpen(false);
+        }}
+        onConfirm={handleConfirmLogout}
+      />
     </SafeAreaView>
   );
 }

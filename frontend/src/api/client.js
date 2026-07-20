@@ -216,3 +216,15 @@ export async function loginUser(user) {
     }),
   });
 }
+
+export async function logoutUser(accessToken) {
+  const headers = {};
+  if (accessToken) {
+    headers.Authorization = 'Bearer ' + accessToken;
+  }
+
+  return request('/api/auth/logout', {
+    method: 'POST',
+    headers: headers,
+  });
+}
