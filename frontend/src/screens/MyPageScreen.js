@@ -11,7 +11,7 @@ import SectionBand from '../components/SectionBand';
 import StatBox from '../components/StatBox';
 import { SURFACE, LINE, TEXT, POINT } from '../colors';
 import { WatchlistContext } from '../store/WatchlistContext';
-import { DUMMY_MY_PROFILE } from '../dummyData/dummyData'; // 더미: 연동 시 삭제
+import { clearAuthSession, getCurrentUser } from '../store/AuthSession';
 
 // 설정 메뉴 목록 (앱에 고정된 항목이라 백엔드 데이터가 아님)
 const menuList = [
@@ -30,21 +30,18 @@ function MyPageScreen() {
   // 저장소에서 등록된 상품 목록과 알림 목록을 가져옴 (개수 계산용)
   const { watchedProducts, notifications } = useContext(WatchlistContext);
 
-  // 내 정보(이름·이메일) (백엔드에서 불러옴)
-  const [profile, setProfile] = useState({ username: '', email: '' });
+  // 내 정보(아이디·이메일)
+  const [profile, setProfile] = useState({ userId: '', email: '' });
 
   // 화면이 처음 그려질 때 내 정보를 불러옴
   useEffect(function () {
-    // [백엔드 ④] 아래 주석을 풀고 서버 주소만 넣으세요.
-    //
-    // async function loadProfile() {
-    //   const response = await fetch('여기에_서버주소/api/me');
-    //   const data = await response.json();
-    //   setProfile(data);
-    // }
-    // loadProfile();
-
-    setProfile(DUMMY_MY_PROFILE); // 더미: 연동 시 삭제
+    const user = getCurrentUser();
+    if (user) {
+      setProfile({
+        userId: user.userId,
+        email: user.email,
+      });
+    }
   }, []);
 
   // 관심 상품 수 · 목표 달성 수를 등록된 상품으로 계산
@@ -63,6 +60,7 @@ function MyPageScreen() {
 
   // 로그아웃을 확정했을 때 로그인 화면으로 되돌림
   function handleConfirmLogout() {
+    clearAuthSession();
     // 마이페이지는 메인 탭 안에 있으므로, 한 단계 위(RootStack)를 가져옴
     const rootNavigation = navigation.getParent();
     // '인증' 묶음(로그인부터 시작)으로 새로 깔아서 뒤로가기로 못 돌아가게 함
@@ -88,7 +86,7 @@ function MyPageScreen() {
             <Ionicons name="person" size={22} color={TEXT.WEAK} />
           </View>
           <View style={styles.profileTextArea}>
-            <Text style={styles.profileName}>{profile.username}</Text>
+            <Text style={styles.profileName}>{profile.userId}</Text>
             <Text style={styles.profileEmail}>{profile.email}</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={TEXT.WEAK} />

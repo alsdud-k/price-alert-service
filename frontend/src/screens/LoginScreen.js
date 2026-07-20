@@ -8,6 +8,7 @@ import PropTypes from 'prop-types';
 import FormInput from '../components/FormInput';
 import MessageModal from '../components/MessageModal';
 import { loginUser } from '../api/client';
+import { setAuthSession } from '../store/AuthSession';
 import { SURFACE, LINE, TEXT, POINT, BUTTON } from '../colors';
 
 // 로그인 화면
@@ -53,7 +54,8 @@ function LoginScreen({ navigation }) {
 
     setIsSubmitting(true);
     try {
-      await loginUser({ userId: userId.trim(), password: password });
+      const auth = await loginUser({ userId: userId.trim(), password: password });
+      setAuthSession(auth);
       const rootNavigation = navigation.getParent(); // 한 단계 위(RootStack)
       rootNavigation.reset({ index: 0, routes: [{ name: '메인' }] }); // 뒤로가기로 로그인에 못 돌아가게 함
     } catch (error) {
