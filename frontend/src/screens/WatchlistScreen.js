@@ -1,7 +1,7 @@
 // 관심 상품 화면. (필터 칩으로 걸러 보고, 정렬 기준으로 순서를 바꿈)
 
 import React, { useState, useContext } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -34,6 +34,8 @@ function WatchlistScreen() {
 
   // 정렬 팝업을 열지 여부
   const [isSortModalOpen, setIsSortModalOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
+  const [deleteMessage, setDeleteMessage] = useState('');
 
   // 요약 숫자를 등록된 상품으로 계산
   const trackingCount = watchedProducts.length;
@@ -63,6 +65,24 @@ function WatchlistScreen() {
   function handleSelectSort(option) {
     setSelectedSort(option);
     setIsSortModalOpen(false);
+  }
+
+  function handleCloseDeleteModal() {
+    setProductToDelete(null);
+    setDeleteMessage('');
+  }
+
+  async function handleConfirmDelete() {
+    if (productToDelete === null) {
+      return;
+    }
+
+    try {
+      await removeProduct(productToDelete.id);
+      handleCloseDeleteModal();
+    } catch (error) {
+      setDeleteMessage(error.message || '상품 삭제에 실패했습니다.');
+    }
   }
 
   // 선택된 필터에 맞는 상품만 골라냄
@@ -174,24 +194,10 @@ function WatchlistScreen() {
             toggleAlert(product.id);
           }
 
-          // 삭제를 확정했을 때: 목록에서 이 상품을 지움
-          function handleConfirmDelete() {
-            // [백엔드 ⑥] 아래 주석을 풀고 서버 주소만 넣으세요.
-            //
-            // async function deleteProductFromServer() {
-            //   await fetch('여기에_서버주소/api/watchlist/' + product.id, { method: 'DELETE' });
-            // }
-            // deleteProductFromServer();
-
-            removeProduct(product.id); // 화면 목록에서 지움 (연동 후에도 그대로 둠)
-          }
-
           // 휴지통 버튼을 눌렀을 때: 정말 지울지 한 번 더 확인
           function handlePressDelete() {
-            Alert.alert('관심 상품 삭제', product.name + '을(를) 목록에서 지울까요?', [
-              { text: '취소', style: 'cancel' },
-              { text: '삭제', style: 'destructive', onPress: handleConfirmDelete },
-            ]);
+            setProductToDelete(product);
+            setDeleteMessage('');
           }
 
           return (
@@ -231,6 +237,31 @@ function WatchlistScreen() {
         onSelectOption={handleSelectSort}
         onClose={handleCloseSortModal}
       />
+
+      <Modal
+        visible={productToDelete !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCloseDeleteModal}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>관심 상품 삭제</Text>
+            <Text style={styles.modalMessage}>
+              {productToDelete ? productToDelete.name + '을(를) 목록에서 지울까요?' : ''}
+            </Text>
+            {deleteMessage !== '' ? <Text style={styles.errorText}>{deleteMessage}</Text> : null}
+            <View style={styles.modalButtonRow}>
+              <TouchableOpacity style={styles.cancelButton} onPress={handleCloseDeleteModal}>
+                <Text style={styles.cancelButtonText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.deleteButton} onPress={handleConfirmDelete}>
+                <Text style={styles.deleteButtonText}>삭제</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -280,6 +311,76 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     paddingVertical: 40,
+  },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+  },
+  modalBox: {
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 14,
+    backgroundColor: SURFACE.WHITE,
+    paddingHorizontal: 20,
+    paddingTop: 22,
+    paddingBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: TEXT.STRONG,
+    textAlign: 'center',
+    letterSpacing: -0.4,
+  },
+  modalMessage: {
+    marginTop: 10,
+    fontSize: 14,
+    lineHeight: 20,
+    color: TEXT.SUB,
+    textAlign: 'center',
+    letterSpacing: -0.2,
+  },
+  errorText: {
+    marginTop: 10,
+    fontSize: 13,
+    lineHeight: 18,
+    color: TEXT.STRONG,
+    textAlign: 'center',
+  },
+  modalButtonRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 18,
+  },
+  cancelButton: {
+    flex: 1,
+    height: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: LINE.STRONG,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: TEXT.SUB,
+  },
+  deleteButton: {
+    flex: 1,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: TEXT.STRONG,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: TEXT.INVERSE,
   },
 });
 

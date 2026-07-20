@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.pricetracker.backend.dto.AlertEnabledUpdateRequest;
 import com.pricetracker.backend.dto.PriceHistoryResponse;
 import com.pricetracker.backend.dto.ProductCreateRequest;
 import com.pricetracker.backend.dto.ProductResponse;
@@ -51,6 +52,14 @@ public class ProductController {
 			@PathVariable Long id,
 			@Valid @RequestBody TargetPriceUpdateRequest request) {
 		return productService.updateTargetPrice(id, request.targetPrice());
+	}
+
+	/** 알림 활성화 여부 수정 */
+	@PatchMapping("/{id}/alert-enabled")
+	public ProductResponse updateAlertEnabled(
+			@PathVariable Long id,
+			@Valid @RequestBody AlertEnabledUpdateRequest request) {
+		return productService.updateAlertEnabled(id, request.alertEnabled());
 	}
 
 	/** 관심 상품 삭제 */

@@ -44,12 +44,24 @@ public class PriceCheckService {
 		// 2) 현재가 갱신
 		product.setCurrentPrice(price);
 
-		// 3) 목표가 이하이고, 아직 읽지 않은 알림이 없을 때만 알림 생성 (중복 알림 방지)
-		if (product.getTargetPrice() != null && price <= product.getTargetPrice()
+		// 3) 현재가가 목표가 이하이면 알림 조건 평가
+		return evaluateTargetReached(product, price);
+	}
+
+	/**
+	 * 현재가가 목표가 이하이면 알림 조건을 평가한다.
+	 */
+	@Transactional
+	public boolean evaluateTargetReached(Product product, Long currentPrice) {
+		if (currentPrice == null || product.getTargetPrice() == null || !product.isAlertEnabled()) {
+			return false;
+		}
+
+		if (currentPrice <= product.getTargetPrice()
 				&& !alertRepository.existsByProductIdAndIsReadFalse(product.getId())) {
-			alertRepository.save(new Alert(product, price, product.getTargetPrice()));
+			alertRepository.save(new Alert(product, currentPrice, product.getTargetPrice()));
 			log.info("알림 생성 - productId={}, price={}, targetPrice={}",
-				product.getId(), price, product.getTargetPrice());
+				product.getId(), currentPrice, product.getTargetPrice());
 			return true;
 		}
 		return false;

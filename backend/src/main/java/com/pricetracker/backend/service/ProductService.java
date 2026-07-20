@@ -14,6 +14,7 @@ import com.pricetracker.backend.dto.ProductResponse;
 import com.pricetracker.backend.exception.ResourceNotFoundException;
 import com.pricetracker.backend.repository.PriceHistoryRepository;
 import com.pricetracker.backend.repository.ProductRepository;
+import com.pricetracker.backend.repository.AlertRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,7 @@ public class ProductService {
 	private static final Long TEMP_USER_ID = 1L;
 
 	private final ProductRepository productRepository;
+	private final AlertRepository alertRepository;
 	private final PriceHistoryRepository priceHistoryRepository;
 	private final PriceCrawlingService priceCrawlingService;
 	private final PriceCheckService priceCheckService;
@@ -51,6 +53,9 @@ public class ProductService {
 			request.targetPrice(),
 			TEMP_USER_ID
 		);
+		if (request.alertEnabled() != null) {
+			product.setAlertEnabled(request.alertEnabled());
+		}
 		productRepository.save(product);
 
 		// 크롤링 성공 시 이력 저장 + 목표가 조건 즉시 평가
@@ -78,10 +83,20 @@ public class ProductService {
 		return ProductResponse.from(product);
 	}
 
+	/** 알림 활성화 여부 수정 */
+	@Transactional
+	public ProductResponse updateAlertEnabled(Long productId, Boolean alertEnabled) {
+		Product product = findProductOrThrow(productId);
+		product.setAlertEnabled(alertEnabled);
+		return ProductResponse.from(product);
+	}
+
 	/** 관심 상품 삭제 */
 	@Transactional
 	public void deleteProduct(Long productId) {
 		Product product = findProductOrThrow(productId);
+		alertRepository.deleteByProductId(productId);
+		priceHistoryRepository.deleteByProductId(productId);
 		productRepository.delete(product);
 	}
 

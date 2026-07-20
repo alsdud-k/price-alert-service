@@ -4,7 +4,7 @@
 
 ## 기술 스택
 
-- 프론트엔드: React Native, Expo Router, TypeScript
+- 프론트엔드: React Native, Expo, React Navigation
 - 백엔드: Spring Boot, Spring Web, Spring Data JPA, Jsoup(크롤링), Spring Scheduler
 - 데이터베이스: 개발용 H2(인메모리), 운영 전환용 MySQL 8.4
 - 인프라: Docker Compose(MySQL)
@@ -13,9 +13,12 @@
 
 | 기능 | 메서드 | 경로 |
 | --- | --- | --- |
+| 서버 상태 확인 | GET | `/api/health` |
+| 등록 전 현재가 확인 | POST | `/api/price-check/preview` |
 | 관심 상품 등록(등록 시 현재가 크롤링) | POST | `/api/products` |
 | 상품 목록 조회 | GET | `/api/products` |
 | 목표 가격 수정 | PATCH | `/api/products/{id}/target-price` |
+| 상품 알림 ON/OFF 수정 | PATCH | `/api/products/{id}/alert-enabled` |
 | 상품 삭제 | DELETE | `/api/products/{id}` |
 | 가격 변동 이력(그래프용) | GET | `/api/products/{id}/price-history` |
 | 알림 내역 조회(최신순) | GET | `/api/alerts` |

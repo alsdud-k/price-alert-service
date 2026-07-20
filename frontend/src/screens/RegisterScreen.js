@@ -1,6 +1,6 @@
 // 관심 상품 등록 화면. (검색으로 고른 상품을 채워 넣거나, 직접 입력해서 등록)
 
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   TextInput,
   TouchableOpacity,
   Switch,
+  Modal,
   StyleSheet,
   Alert,
   KeyboardAvoidingView,
@@ -15,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import PropTypes from 'prop-types';
 
 import ScreenHeader from '../components/ScreenHeader';
@@ -23,45 +25,91 @@ import PlaceholderImage from '../components/PlaceholderImage';
 import FormInput from '../components/FormInput';
 import { SURFACE, LINE, TEXT, BUTTON } from '../colors';
 import { WatchlistContext } from '../store/WatchlistContext';
-import { parsePrice, decideStatus, formatPrice } from '../utils/priceUtils';
+import { parsePrice, formatPrice } from '../utils/priceUtils';
+import { createProduct, previewPrice } from '../api/client';
 
 // 관심 상품 등록 화면
 function RegisterScreen({ navigation, route }) {
   // 관심 상품 저장소에서 '추가' 기능을 가져옴
-  const { addProduct } = useContext(WatchlistContext);
-
-  // 검색 화면에서 고른 상품이 있으면 가져옴 (직접 등록이면 없음)
-  let selectedProduct = null;
-  if (route.params && route.params.product) {
-    selectedProduct = route.params.product;
-  }
-
-  // 고른 상품이 있으면 그 값으로 미리 채우고, 직접 등록이면 빈칸으로 시작
-  let firstImageUrl = '';
-  let firstLowestPrice = null;
-  let firstPriceHistory = [];
-  let firstMallName = '';
-  let firstProductName = '';
-  if (selectedProduct) {
-    firstImageUrl = selectedProduct.imageUrl;
-    firstLowestPrice = selectedProduct.currentLowestPrice;
-    firstPriceHistory = selectedProduct.priceHistory;
-    firstMallName = selectedProduct.mall;
-    firstProductName = selectedProduct.name;
-  }
+  const { addProduct, reloadNotifications } = useContext(WatchlistContext);
 
   // 입력창 값들
-  const [productName, setProductName] = useState(firstProductName);
+  const [productName, setProductName] = useState('');
   const [productUrl, setProductUrl] = useState('');
-  const [mallName, setMallName] = useState(firstMallName);
+  const [mallName, setMallName] = useState('');
   const [targetPrice, setTargetPrice] = useState('');
 
   // 상품 이미지와 현재 최저가 (버튼을 누르면 서버에서 다시 받아와 바뀔 수 있음)
-  const [imageUrl, setImageUrl] = useState(firstImageUrl);
-  const [currentLowestPrice, setCurrentLowestPrice] = useState(firstLowestPrice);
+  const [imageUrl, setImageUrl] = useState('');
+  const [currentLowestPrice, setCurrentLowestPrice] = useState(null);
 
   // 목표가 이하 알림 스위치의 켜짐 여부
   const [isAlertOn, setIsAlertOn] = useState(true);
+  const [isCheckingPrice, setIsCheckingPrice] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [resultPopup, setResultPopup] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    shouldGoToWatchlist: false,
+  });
+
+  function resetForm(product) {
+    if (product) {
+      setProductName(product.name || '');
+      setProductUrl(product.url || '');
+      setMallName(product.mall || '');
+      setImageUrl(product.imageUrl || '');
+      setCurrentLowestPrice(product.currentLowestPrice || null);
+    } else {
+      setProductName('');
+      setProductUrl('');
+      setMallName('');
+      setImageUrl('');
+      setCurrentLowestPrice(null);
+    }
+    setTargetPrice('');
+    setIsAlertOn(true);
+    setIsCheckingPrice(false);
+    setIsRegistering(false);
+  }
+
+  function showResultPopup(title, message, shouldGoToWatchlist) {
+    setResultPopup({
+      visible: true,
+      title: title,
+      message: message,
+      shouldGoToWatchlist: shouldGoToWatchlist,
+    });
+  }
+
+  function handleCloseResultPopup() {
+    const shouldGoToWatchlist = resultPopup.shouldGoToWatchlist;
+    setResultPopup({
+      visible: false,
+      title: '',
+      message: '',
+      shouldGoToWatchlist: false,
+    });
+
+    if (shouldGoToWatchlist) {
+      handleGoToWatchlist();
+    }
+  }
+
+  useFocusEffect(
+    useCallback(
+      function () {
+        const selectedProduct = route.params && route.params.product ? route.params.product : null;
+        resetForm(selectedProduct);
+
+        return function () {
+          resetForm(null);
+        };
+      },
+      [route.params]
+    )
+  );
 
   // 최저가가 숫자면 '239,000원'처럼, 아직 없으면 '-'로 표시
   let currentLowestPriceText = '-';
@@ -84,79 +132,80 @@ function RegisterScreen({ navigation, route }) {
   }
 
   // 다시 확인 버튼을 눌렀을 때: 서버에서 지금 최저가를 다시 불러옴
-  function handlePressCheckPrice() {
-    // [백엔드 ⑧] 아래 주석을 풀고 서버 주소만 넣으세요.
-    //
-    // async function loadLowestPrice() {
-    //   const response = await fetch('여기에_서버주소/api/products/lowest-price?url=' + productUrl);
-    //   const data = await response.json();
-    //   setCurrentLowestPrice(data.currentLowestPrice);
-    // }
-    // loadLowestPrice();
+  async function handlePressCheckPrice() {
+    if (productUrl === '') {
+      showResultPopup('가격 확인 실패', '상품 URL을 먼저 입력해주세요.', false);
+      return;
+    }
 
-    Alert.alert('준비중입니다'); // 더미: 연동 시 삭제
+    try {
+      setIsCheckingPrice(true);
+      const priceResult = await previewPrice(productUrl);
+      setCurrentLowestPrice(priceResult.currentPrice);
+      setMallName(priceResult.mall);
+      Alert.alert('가격 확인 완료', '현재 최저가를 확인했어요.');
+    } catch (error) {
+      showResultPopup('가격 확인 실패', error.message || '현재 최저가를 확인하지 못했습니다.', false);
+    } finally {
+      setIsCheckingPrice(false);
+    }
   }
 
   // 등록을 마친 뒤 관심상품 탭으로 이동
   function handleGoToWatchlist() {
-    navigation.goBack(); // 등록 화면을 닫아 검색 화면으로 돌아감
+    resetForm(null);
+    navigation.navigate('검색화면'); // 등록 화면을 닫아 검색 화면으로 돌아감
     const mainTab = navigation.getParent(); // 한 단계 위(탭 묶음)
     mainTab.navigate('관심상품'); // 관심상품 탭으로 이동
   }
 
   // 등록하기 버튼을 눌렀을 때 실행
-  function handlePressRegister() {
+  async function handlePressRegister() {
+    if (isRegistering) {
+      return;
+    }
+
     // 빈칸이 있으면 안내하고 멈춤
     if (productName === '') {
-      Alert.alert('입력 확인', '상품명을 입력해주세요.');
+      showResultPopup('등록 실패', '상품명을 입력해주세요.', false);
       return;
     }
     if (targetPrice === '') {
-      Alert.alert('입력 확인', '목표 가격을 입력해주세요.');
+      showResultPopup('등록 실패', '목표 가격을 입력해주세요.', false);
+      return;
+    }
+    if (productUrl === '') {
+      showResultPopup('등록 실패', '상품 URL을 입력해주세요.', false);
       return;
     }
 
     // 목표가 글자를 숫자로 바꿈
     const targetNumber = parsePrice(targetPrice);
-
-    // 상태를 정함 (최저가를 아직 모르면 '유지 중')
-    let status = '유지 중';
-    if (currentLowestPrice !== null) {
-      status = decideStatus(firstPriceHistory, currentLowestPrice, targetNumber);
+    if (targetNumber <= 0) {
+      showResultPopup('등록 실패', '목표 가격은 0보다 큰 숫자로 입력해주세요.', false);
+      return;
     }
 
     // 저장소에 추가할 새 관심 상품 (id는 지금 시각으로 겹치지 않게 만듦)
     const newProduct = {
-      id: Date.now(),
       name: productName,
-      mall: mallName,
-      imageUrl: imageUrl,
-      currentLowestPrice: currentLowestPrice,
+      url: productUrl,
       targetPrice: targetNumber,
-      priceHistory: firstPriceHistory,
-      status: status,
-      isAlertOn: isAlertOn, // 위의 '목표가 이하 알림' 스위치 값
+      alertEnabled: isAlertOn,
     };
 
-    // [백엔드 ⑤] 아래 주석을 풀고 서버 주소만 넣으세요.
-    //
-    // async function saveProductToServer() {
-    //   const response = await fetch('여기에_서버주소/api/watchlist', {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify(newProduct),
-    //   });
-    //   const savedProduct = await response.json();
-    //   addProduct(savedProduct);
-    // }
-    // saveProductToServer();
+    try {
+      setIsRegistering(true);
+      const savedProduct = await createProduct(newProduct);
+      addProduct(savedProduct);
+      await reloadNotifications();
 
-    addProduct(newProduct); // 더미: 연동 시 삭제
-
-    // 등록 완료 안내 후 관심상품 탭으로 이동
-    Alert.alert('등록 완료', '관심 상품으로 등록됐어요.', [
-      { text: '확인', onPress: handleGoToWatchlist },
-    ]);
+      showResultPopup('등록 완료', '등록 완료되었습니다.', true);
+    } catch (error) {
+      showResultPopup('등록 실패', error.message || '등록이 안 되었습니다.', false);
+    } finally {
+      setIsRegistering(false);
+    }
   }
 
   // iOS에서 키보드가 입력창을 가리지 않게 하는 설정
@@ -216,9 +265,13 @@ function RegisterScreen({ navigation, route }) {
           <View style={styles.priceSection}>
             <View style={styles.priceLabelRow}>
               <Text style={styles.priceLabel}>현재 최저가</Text>
-              <TouchableOpacity style={styles.refreshButton} onPress={handlePressCheckPrice}>
+              <TouchableOpacity
+                style={styles.refreshButton}
+                onPress={handlePressCheckPrice}
+                disabled={isCheckingPrice}
+              >
                 <Ionicons name="refresh" size={13} color={TEXT.SUB} />
-                <Text style={styles.refreshText}>다시 확인</Text>
+                <Text style={styles.refreshText}>{isCheckingPrice ? '확인 중' : '다시 확인'}</Text>
               </TouchableOpacity>
             </View>
             <Text style={styles.priceValue}>{currentLowestPriceText}</Text>
@@ -265,11 +318,32 @@ function RegisterScreen({ navigation, route }) {
 
         {/* 화면 아래에 고정된 등록 버튼 */}
         <View style={styles.bottomArea}>
-          <TouchableOpacity style={styles.registerButton} onPress={handlePressRegister}>
-            <Text style={styles.registerButtonText}>등록하기</Text>
+          <TouchableOpacity
+            style={styles.registerButton}
+            onPress={handlePressRegister}
+            disabled={isRegistering}
+          >
+            <Text style={styles.registerButtonText}>{isRegistering ? '등록 중' : '등록하기'}</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      <Modal
+        visible={resultPopup.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCloseResultPopup}
+      >
+        <View style={styles.popupBackdrop}>
+          <View style={styles.popupBox}>
+            <Text style={styles.popupTitle}>{resultPopup.title}</Text>
+            <Text style={styles.popupMessage}>{resultPopup.message}</Text>
+            <TouchableOpacity style={styles.popupButton} onPress={handleCloseResultPopup}>
+              <Text style={styles.popupButtonText}>확인</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -434,6 +508,52 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: TEXT.INVERSE,
     letterSpacing: -0.3,
+  },
+  popupBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+  },
+  popupBox: {
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 14,
+    backgroundColor: SURFACE.WHITE,
+    paddingHorizontal: 20,
+    paddingTop: 22,
+    paddingBottom: 16,
+    alignItems: 'center',
+  },
+  popupTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: TEXT.STRONG,
+    letterSpacing: -0.4,
+  },
+  popupMessage: {
+    marginTop: 10,
+    fontSize: 14,
+    lineHeight: 20,
+    color: TEXT.SUB,
+    textAlign: 'center',
+    letterSpacing: -0.2,
+  },
+  popupButton: {
+    alignSelf: 'stretch',
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: BUTTON.DEFAULT,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 18,
+  },
+  popupButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: TEXT.INVERSE,
+    letterSpacing: -0.2,
   },
 });
 
