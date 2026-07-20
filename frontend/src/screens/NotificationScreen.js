@@ -1,8 +1,9 @@
 // 알림 화면. (필터 칩으로 걸러 보고, 오늘/이번 주로 나눠 표시)
 
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 
 import ScreenHeader from '../components/ScreenHeader';
 import FilterChips from '../components/FilterChips';
@@ -18,7 +19,13 @@ function NotificationScreen() {
   const [selectedFilter, setSelectedFilter] = useState('전체');
 
   // 저장소에서 알림 목록을 가져옴 (저장소가 백엔드/더미에서 불러옴)
-  const { notifications } = useContext(WatchlistContext);
+  const { notifications, readNotification, reloadNotifications } = useContext(WatchlistContext);
+
+  useFocusEffect(
+    useCallback(function () {
+      reloadNotifications();
+    }, [])
+  );
 
   // 알림 하나가 선택된 필터에 맞는지 확인
   function checkFilterMatch(notification) {
@@ -61,6 +68,10 @@ function NotificationScreen() {
         {/* '오늘' 묶음 (알림이 있을 때만 제목 표시) */}
         {todayList.length > 0 ? <Text style={styles.sectionLabel}>오늘</Text> : null}
         {todayList.map(function (notification) {
+          function handlePressNotification() {
+            readNotification(notification.id);
+          }
+
           return (
             <NotificationCard
               key={notification.id}
@@ -68,6 +79,7 @@ function NotificationScreen() {
               message={notification.message}
               time={notification.time}
               isRead={notification.isRead}
+              onPress={handlePressNotification}
             />
           );
         })}
@@ -75,6 +87,10 @@ function NotificationScreen() {
         {/* '이번 주' 묶음 (알림이 있을 때만 제목 표시) */}
         {thisWeekList.length > 0 ? <Text style={styles.sectionLabel}>이번 주</Text> : null}
         {thisWeekList.map(function (notification) {
+          function handlePressNotification() {
+            readNotification(notification.id);
+          }
+
           return (
             <NotificationCard
               key={notification.id}
@@ -82,6 +98,7 @@ function NotificationScreen() {
               message={notification.message}
               time={notification.time}
               isRead={notification.isRead}
+              onPress={handlePressNotification}
             />
           );
         })}

@@ -15,6 +15,8 @@ public record ProductCreateRequest(
 
 	@NotNull(message = "목표 가격은 필수입니다.")
 	@Positive(message = "목표 가격은 0보다 커야 합니다.")
-	Long targetPrice
+	Long targetPrice,
+
+	Boolean alertEnabled
 ) {
 }

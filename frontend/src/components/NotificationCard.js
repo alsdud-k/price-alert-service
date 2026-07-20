@@ -2,25 +2,20 @@
 // 안 읽은 알림은 왼쪽에 빨간 점이 붙고 상품명이 굵게 보입니다.
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import PropTypes from 'prop-types';
 import { SURFACE, LINE, TEXT, POINT } from '../colors';
 
 // 알림 줄
-function NotificationCard({ productName, message, time, isRead }) {
+function NotificationCard({ productName, message, time, isRead, onPress = null }) {
   // 읽은 알림은 상품명을 덜 굵게 (안 읽은 알림이 더 눈에 띄도록)
   let nameStyle = styles.nameUnread;
   if (isRead === true) {
     nameStyle = styles.nameRead;
   }
 
-  // 알림 줄을 눌렀을 때 실행 (백엔드 필요)
-  function handlePressRow() {
-    Alert.alert('준비중입니다');
-  }
-
   return (
-    <TouchableOpacity style={styles.row} onPress={handlePressRow}>
+    <TouchableOpacity style={styles.row} onPress={onPress}>
       {/* 안 읽은 알림 앞의 빨간 점 */}
       <View style={styles.dotArea}>
         {isRead === false ? <View style={styles.unreadDot} /> : null}
@@ -46,6 +41,7 @@ NotificationCard.propTypes = {
   message: PropTypes.string.isRequired, // 알림 내용
   time: PropTypes.string.isRequired, // 알림 온 시간
   isRead: PropTypes.bool.isRequired, // 읽음 여부
+  onPress: PropTypes.func,
 };
 
 const styles = StyleSheet.create({

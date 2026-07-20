@@ -1,7 +1,7 @@
 // 검색 화면. (상품을 검색해 등록 화면으로 넘어감)
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import PropTypes from 'prop-types';
@@ -10,8 +10,22 @@ import SectionBand from '../components/SectionBand';
 import SearchBar from '../components/SearchBar';
 import PlaceholderImage from '../components/PlaceholderImage';
 import { SURFACE, LINE, TEXT } from '../colors';
-import { DUMMY_POPULAR_KEYWORDS, DUMMY_SEARCH_CATALOG } from '../dummyData/dummyData'; // 더미: 연동 시 삭제
 import { formatPrice } from '../utils/priceUtils';
+import { fetchProducts } from '../api/client';
+
+function makePopularKeywords(products) {
+  const keywordList = [];
+  for (let i = 0; i < products.length; i = i + 1) {
+    const firstWord = products[i].name.split(' ')[0];
+    if (firstWord !== '' && keywordList.includes(firstWord) === false) {
+      keywordList.push(firstWord);
+    }
+    if (keywordList.length >= 6) {
+      break;
+    }
+  }
+  return keywordList;
+}
 
 // 검색 화면
 function SearchScreen({ navigation }) {
@@ -23,21 +37,16 @@ function SearchScreen({ navigation }) {
 
   // 화면이 처음 그려질 때 데이터를 불러옴
   useEffect(function () {
-    // [백엔드 ③] 아래 주석을 풀고 서버 주소만 넣으세요.
-    //
-    // async function loadSearchData() {
-    //   const keywordResponse = await fetch('여기에_서버주소/api/popular-keywords');
-    //   const keywordData = await keywordResponse.json();
-    //   setPopularKeywords(keywordData);
-    //
-    //   const productResponse = await fetch('여기에_서버주소/api/products');
-    //   const productData = await productResponse.json();
-    //   setProductCatalog(productData);
-    // }
-    // loadSearchData();
-
-    setPopularKeywords(DUMMY_POPULAR_KEYWORDS); // 더미: 연동 시 삭제
-    setProductCatalog(DUMMY_SEARCH_CATALOG); // 더미: 연동 시 삭제
+    async function loadSearchData() {
+      try {
+        const productList = await fetchProducts();
+        setProductCatalog(productList);
+        setPopularKeywords(makePopularKeywords(productList));
+      } catch (error) {
+        Alert.alert('상품 목록 불러오기 실패', error.message);
+      }
+    }
+    loadSearchData();
   }, []);
 
   // 검색어에 맞는 상품만 골라냄 (검색어가 비어 있으면 전체를 보여줌)
@@ -133,7 +142,9 @@ function SearchScreen({ navigation }) {
                 </Text>
                 <Text style={styles.productMall}>{product.mall}</Text>
                 <Text style={styles.productPrice}>
-                  {formatPrice(product.currentLowestPrice)}
+                  {typeof product.currentLowestPrice === 'number'
+                    ? formatPrice(product.currentLowestPrice)
+                    : '-'}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={TEXT.WEAK} />
