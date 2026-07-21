@@ -193,3 +193,38 @@ export async function markNotificationAsRead(alertId) {
   const alert = await request('/api/alerts/' + alertId + '/read', { method: 'PATCH' });
   return toNotification(alert);
 }
+
+export async function signupUser(user) {
+  return request('/api/auth/signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: user.userId,
+      password: user.password,
+      email: user.email,
+    }),
+  });
+}
+
+export async function loginUser(user) {
+  return request('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: user.userId,
+      password: user.password,
+    }),
+  });
+}
+
+export async function logoutUser(accessToken) {
+  const headers = {};
+  if (accessToken) {
+    headers.Authorization = 'Bearer ' + accessToken;
+  }
+
+  return request('/api/auth/logout', {
+    method: 'POST',
+    headers: headers,
+  });
+}

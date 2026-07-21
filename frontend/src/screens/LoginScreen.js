@@ -6,18 +6,63 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import PropTypes from 'prop-types';
 
 import FormInput from '../components/FormInput';
+import MessageModal from '../components/MessageModal';
+import { loginUser } from '../api/client';
+import { setAuthSession } from '../store/AuthSession';
 import { SURFACE, LINE, TEXT, POINT, BUTTON } from '../colors';
 
 // 로그인 화면
 function LoginScreen({ navigation }) {
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [popup, setPopup] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    onClose: null,
+  });
+
+  function showPopup(title, message, onClose) {
+    setPopup({
+      visible: true,
+      title: title,
+      message: message,
+      onClose: onClose || null,
+    });
+  }
+
+  function handleClosePopup() {
+    const onClose = popup.onClose;
+    setPopup({
+      visible: false,
+      title: '',
+      message: '',
+      onClose: null,
+    });
+
+    if (onClose) {
+      onClose();
+    }
+  }
 
   // 로그인 버튼을 눌렀을 때 실행
-  function handlePressLogin() {
-    // [백엔드 API 자리] 나중에 서버로 아이디·비밀번호 확인. 지금은 바로 메인으로 이동.
-    const rootNavigation = navigation.getParent(); // 한 단계 위(RootStack)
-    rootNavigation.reset({ index: 0, routes: [{ name: '메인' }] }); // 뒤로가기로 로그인에 못 돌아가게 함
+  async function handlePressLogin() {
+    if (isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const auth = await loginUser({ userId: userId.trim(), password: password });
+      setAuthSession(auth);
+      const rootNavigation = navigation.getParent(); // 한 단계 위(RootStack)
+      rootNavigation.reset({ index: 0, routes: [{ name: '메인' }] }); // 뒤로가기로 로그인에 못 돌아가게 함
+    } catch (error) {
+      showPopup('로그인 실패', error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   // 회원가입 화면으로 이동
@@ -62,8 +107,12 @@ function LoginScreen({ navigation }) {
         />
 
         {/* 로그인 버튼 */}
-        <TouchableOpacity style={styles.loginButton} onPress={handlePressLogin}>
-          <Text style={styles.loginButtonText}>로그인</Text>
+        <TouchableOpacity
+          style={styles.loginButton}
+          onPress={handlePressLogin}
+          disabled={isSubmitting}
+        >
+          <Text style={styles.loginButtonText}>{isSubmitting ? '로그인 중...' : '로그인'}</Text>
         </TouchableOpacity>
 
         {/* 회원가입 | 아이디 찾기 | 비밀번호 찾기 */}
@@ -81,6 +130,12 @@ function LoginScreen({ navigation }) {
           </TouchableOpacity>
         </View>
       </View>
+      <MessageModal
+        visible={popup.visible}
+        title={popup.title}
+        message={popup.message}
+        onClose={handleClosePopup}
+      />
     </SafeAreaView>
   );
 }

@@ -9,6 +9,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.pricetracker.backend.exception.DuplicateResourceException;
+import com.pricetracker.backend.exception.InvalidCredentialsException;
 import com.pricetracker.backend.exception.ResourceNotFoundException;
 
 /**
@@ -29,6 +31,18 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException e) {
 		return ResponseEntity.status(HttpStatus.NOT_FOUND)
 			.body(ErrorResponse.of(HttpStatus.NOT_FOUND, e.getMessage()));
+	}
+
+	@ExceptionHandler(DuplicateResourceException.class)
+	public ResponseEntity<ErrorResponse> handleDuplicate(DuplicateResourceException e) {
+		return ResponseEntity.status(HttpStatus.CONFLICT)
+			.body(ErrorResponse.of(HttpStatus.CONFLICT, e.getMessage()));
+	}
+
+	@ExceptionHandler(InvalidCredentialsException.class)
+	public ResponseEntity<ErrorResponse> handleInvalidCredentials(InvalidCredentialsException e) {
+		return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+			.body(ErrorResponse.of(HttpStatus.UNAUTHORIZED, e.getMessage()));
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
