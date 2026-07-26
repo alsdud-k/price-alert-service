@@ -45,6 +45,9 @@ public class PriceCheckController {
 				"현재 최저가를 확인하지 못했습니다. 지원 쇼핑몰 URL인지 확인해주세요."
 			));
 
-		return new PricePreviewResponse(mallType, currentPrice);
+		// 상품 대표 이미지도 함께 크롤링 (실패해도 가격은 그대로 응답, imageUrl 은 null)
+		String imageUrl = priceCrawlingService.crawlImage(request.url(), mallType).orElse(null);
+
+		return new PricePreviewResponse(mallType, currentPrice, imageUrl);
 	}
 }
