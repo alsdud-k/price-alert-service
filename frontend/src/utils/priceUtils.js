@@ -1,7 +1,7 @@
 // 가격 관련 도우미 함수들
 
-// 숫자를 '239,000원'처럼 세 자리마다 콤마를 찍어 표시
-export function formatPrice(number) {
+// 숫자를 '239,000'처럼 세 자리마다 콤마만 찍어 표시 (입력칸에서 사용. '원'은 붙이지 않음)
+export function formatNumberWithComma(number) {
   const text = String(number);
   let result = '';
   let count = 0;
@@ -15,7 +15,12 @@ export function formatPrice(number) {
     }
   }
 
-  return result + '원';
+  return result;
+}
+
+// 숫자를 '239,000원'처럼 콤마와 '원'을 붙여 표시
+export function formatPrice(number) {
+  return formatNumberWithComma(number) + '원';
 }
 
 // '200,000' 같은 글자에서 숫자만 뽑아 정수로 바꿈

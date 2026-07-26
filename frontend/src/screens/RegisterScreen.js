@@ -12,6 +12,7 @@ import {
   StyleSheet,
   Alert,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,7 +26,7 @@ import PlaceholderImage from '../components/PlaceholderImage';
 import FormInput from '../components/FormInput';
 import { SURFACE, LINE, TEXT, BUTTON } from '../colors';
 import { WatchlistContext } from '../store/WatchlistContext';
-import { parsePrice, formatPrice } from '../utils/priceUtils';
+import { parsePrice, formatPrice, formatNumberWithComma } from '../utils/priceUtils';
 import { createProduct, previewPrice } from '../api/client';
 
 // 관심 상품 등록 화면
@@ -39,9 +40,12 @@ function RegisterScreen({ navigation, route }) {
   const [mallName, setMallName] = useState('');
   const [targetPrice, setTargetPrice] = useState('');
 
-  // 상품 이미지와 현재 최저가 (버튼을 누르면 서버에서 다시 받아와 바뀔 수 있음)
+  // 상품 이미지와 현재 최저가 (URL을 넣으면 서버에서 받아와 채워짐)
   const [imageUrl, setImageUrl] = useState('');
   const [currentLowestPrice, setCurrentLowestPrice] = useState(null);
+
+  // 방금 조회한 상품 URL (같은 주소를 두 번 조회하지 않도록 기억해 둠)
+  const [checkedUrl, setCheckedUrl] = useState('');
 
   // 목표가 이하 알림 스위치의 켜짐 여부
   const [isAlertOn, setIsAlertOn] = useState(true);
@@ -61,12 +65,14 @@ function RegisterScreen({ navigation, route }) {
       setMallName(product.mall || '');
       setImageUrl(product.imageUrl || '');
       setCurrentLowestPrice(product.currentLowestPrice || null);
+      setCheckedUrl(product.url || '');
     } else {
       setProductName('');
       setProductUrl('');
       setMallName('');
       setImageUrl('');
       setCurrentLowestPrice(null);
+      setCheckedUrl('');
     }
     setTargetPrice('');
     setIsAlertOn(true);
@@ -117,38 +123,61 @@ function RegisterScreen({ navigation, route }) {
     currentLowestPriceText = formatPrice(currentLowestPrice);
   }
 
-  // 이미지 검색 버튼을 눌렀을 때: 서버에서 상품 이미지를 찾아옴
-  function handlePressImageSearch() {
-    // [백엔드 ⑦] 아래 주석을 풀고 서버 주소만 넣으세요.
-    //
-    // async function loadProductImage() {
-    //   const response = await fetch('여기에_서버주소/api/products/image?name=' + productName);
-    //   const data = await response.json();
-    //   setImageUrl(data.imageUrl);
-    // }
-    // loadProductImage();
-
-    Alert.alert('준비중입니다'); // 더미: 연동 시 삭제
-  }
-
-  // 다시 확인 버튼을 눌렀을 때: 서버에서 지금 최저가를 다시 불러옴
-  async function handlePressCheckPrice() {
-    if (productUrl === '') {
-      showResultPopup('가격 확인 실패', '상품 URL을 먼저 입력해주세요.', false);
+  // 상품 URL로 현재 최저가를 서버에서 불러옴
+  // (자동 조회와 '다시 확인' 버튼이 함께 사용하고, 버튼으로 누른 경우에만 결과를 알려줍니다)
+  async function loadPriceFromUrl(shouldShowMessage) {
+    if (isCheckingPrice) {
       return;
     }
+
+    // 같은 주소를 두 번 조회하지 않도록 지금 주소를 기억해 둠
+    setCheckedUrl(productUrl);
 
     try {
       setIsCheckingPrice(true);
       const priceResult = await previewPrice(productUrl);
       setCurrentLowestPrice(priceResult.currentPrice);
       setMallName(priceResult.mall);
-      Alert.alert('가격 확인 완료', '현재 최저가를 확인했어요.');
+
+      // 서버가 상품 이미지도 함께 주면 미리보기에 넣음
+      if (priceResult.imageUrl) {
+        setImageUrl(priceResult.imageUrl);
+      }
+
+      if (shouldShowMessage === true) {
+        Alert.alert('가격 확인 완료', '현재 최저가를 확인했어요.');
+      }
     } catch (error) {
-      showResultPopup('가격 확인 실패', error.message || '현재 최저가를 확인하지 못했습니다.', false);
+      // 자동 조회는 실패해도 알리지 않고 넘어감 (최저가는 '-'로 남습니다)
+      if (shouldShowMessage === true) {
+        showResultPopup(
+          '가격 확인 실패',
+          error.message || '현재 최저가를 확인하지 못했습니다.',
+          false
+        );
+      }
     } finally {
       setIsCheckingPrice(false);
     }
+  }
+
+  // 상품 URL 칸에서 손을 뗐을 때: 새로 넣은 주소면 최저가를 자동으로 조회
+  function handleBlurProductUrl() {
+    if (productUrl === '' || productUrl === checkedUrl) {
+      return;
+    }
+
+    loadPriceFromUrl(false);
+  }
+
+  // 다시 확인 버튼을 눌렀을 때: 서버에서 지금 최저가를 다시 불러옴
+  function handlePressCheckPrice() {
+    if (productUrl === '') {
+      showResultPopup('가격 확인 실패', '상품 URL을 먼저 입력해주세요.', false);
+      return;
+    }
+
+    loadPriceFromUrl(true);
   }
 
   // 등록을 마친 뒤 관심상품 탭으로 이동
@@ -157,6 +186,24 @@ function RegisterScreen({ navigation, route }) {
     navigation.navigate('검색화면'); // 등록 화면을 닫아 검색 화면으로 돌아감
     const mainTab = navigation.getParent(); // 한 단계 위(탭 묶음)
     mainTab.navigate('관심상품'); // 관심상품 탭으로 이동
+  }
+
+  // 목표 가격을 입력할 때마다 세 자리마다 콤마를 찍어 다시 보여줌
+  function handleChangeTargetPrice(text) {
+    const onlyNumber = parsePrice(text);
+
+    // 글자를 다 지웠을 때는 빈칸으로 둠
+    if (onlyNumber === 0) {
+      setTargetPrice('');
+      return;
+    }
+
+    setTargetPrice(formatNumberWithComma(onlyNumber));
+  }
+
+  // 키보드의 완료키를 눌렀을 때 실행
+  function handlePressDismissKeyboard() {
+    Keyboard.dismiss();
   }
 
   // 등록하기 버튼을 눌렀을 때 실행
@@ -220,19 +267,10 @@ function RegisterScreen({ navigation, route }) {
 
       <KeyboardAvoidingView style={styles.keyboardArea} behavior={keyboardBehavior}>
         <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          {/* 상품 이미지 */}
+          {/* 상품 이미지 미리보기 */}
           <View style={styles.imageSection}>
-            <PlaceholderImage size={72} uri={imageUrl} />
-            <View style={styles.imageTextArea}>
-              <Text style={styles.imageTitle}>상품 이미지</Text>
-              <Text style={styles.imageDescription}>
-                검색으로 상품을 고르면 이미지가 자동으로 들어옵니다.
-              </Text>
-              <TouchableOpacity style={styles.imageSearchButton} onPress={handlePressImageSearch}>
-                <Ionicons name="search" size={13} color={TEXT.SUB} />
-                <Text style={styles.imageSearchText}>이미지 검색</Text>
-              </TouchableOpacity>
-            </View>
+            <Text style={styles.imageTitle}>상품 이미지</Text>
+            <PlaceholderImage size={96} uri={imageUrl} />
           </View>
 
           <SectionBand />
@@ -250,6 +288,7 @@ function RegisterScreen({ navigation, route }) {
               value={productUrl}
               onChangeText={setProductUrl}
               placeholder="상품 페이지 주소를 붙여넣으세요"
+              onBlur={handleBlurProductUrl} // 주소를 넣고 손을 떼면 최저가를 자동 조회
             />
             <FormInput
               label="쇼핑몰"
@@ -286,10 +325,12 @@ function RegisterScreen({ navigation, route }) {
               <TextInput
                 style={styles.targetPriceInput}
                 value={targetPrice}
-                onChangeText={setTargetPrice}
+                onChangeText={handleChangeTargetPrice}
                 placeholder="목표 가격"
                 placeholderTextColor={TEXT.WEAK}
                 keyboardType="number-pad"
+                returnKeyType="done" // 키보드의 완료키로 키보드를 내림
+                onSubmitEditing={handlePressDismissKeyboard}
               />
               <Text style={styles.wonText}>원</Text>
             </View>
@@ -362,42 +403,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   imageSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'center', // 미리보기를 가운데 배치
     paddingHorizontal: 16,
     paddingVertical: 18,
-    gap: 14,
-  },
-  imageTextArea: {
-    flex: 1,
-    gap: 4,
+    gap: 12,
   },
   imageTitle: {
     fontSize: 14,
     fontWeight: '700',
     color: TEXT.STRONG,
     letterSpacing: -0.3,
-  },
-  imageDescription: {
-    fontSize: 12,
-    color: TEXT.SUB,
-    lineHeight: 17,
-  },
-  imageSearchButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start', // 글자 길이만큼만 차지
-    height: 30,
-    paddingHorizontal: 10,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: LINE.STRONG,
-    gap: 4,
-    marginTop: 4,
-  },
-  imageSearchText: {
-    fontSize: 12,
-    color: TEXT.SUB,
   },
   formSection: {
     paddingHorizontal: 16,

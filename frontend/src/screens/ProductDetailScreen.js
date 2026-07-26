@@ -2,15 +2,24 @@
 // 상품 이미지·이름·현재가·목표가와, 크림 앱처럼 날짜·가격 축이 있는 큰 그래프를 보여줍니다.
 
 import React, { useState, useEffect, useCallback, useContext } from 'react';
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import PropTypes from 'prop-types';
 
 import ScreenHeader from '../components/ScreenHeader';
 import PlaceholderImage from '../components/PlaceholderImage';
 import StatusBadge from '../components/StatusBadge';
 import PriceHistoryGraph from '../components/PriceHistoryGraph';
+import TargetPriceModal from '../components/TargetPriceModal';
 import { SURFACE, LINE, TEXT, POINT } from '../colors';
 import { formatPrice, calculateDropRate } from '../utils/priceUtils';
 import { fetchProduct } from '../api/client';
@@ -23,7 +32,7 @@ function ProductDetailScreen() {
 
   // 목록 화면에서 이미 불러온 데이터가 있으면 먼저 그걸로 보여주고,
   // 그 사이에 최신 데이터를 서버에서 한 번 더 받아온다.
-  const { watchedProducts } = useContext(WatchlistContext);
+  const { watchedProducts, updateTargetPrice } = useContext(WatchlistContext);
   const cachedProduct = watchedProducts.find(function (item) {
     return item.id === productId;
   });
@@ -31,6 +40,9 @@ function ProductDetailScreen() {
   const [product, setProduct] = useState(cachedProduct || null);
   const [isLoading, setIsLoading] = useState(cachedProduct === undefined);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // 목표 가격 수정 팝업을 열지 여부
+  const [isTargetPriceModalOpen, setIsTargetPriceModalOpen] = useState(false);
 
   const loadProduct = useCallback(async function () {
     try {
@@ -72,6 +84,22 @@ function ProductDetailScreen() {
 
   const dropRate = calculateDropRate(product.priceHistory, product.currentLowestPrice);
 
+  // 목표 가격 수정 버튼을 눌렀을 때: 팝업을 엶
+  function handlePressEditTargetPrice() {
+    setIsTargetPriceModalOpen(true);
+  }
+
+  // 팝업을 닫음
+  function handleCloseTargetPriceModal() {
+    setIsTargetPriceModalOpen(false);
+  }
+
+  // 팝업에서 저장을 눌렀을 때: 서버에 새 목표가를 보내고 화면을 갱신함
+  async function handleSaveTargetPrice(newTargetPrice) {
+    const updatedProduct = await updateTargetPrice(productId, newTargetPrice);
+    setProduct(updatedProduct);
+  }
+
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <ScreenHeader title="상품 상세" showBackButton />
@@ -97,7 +125,14 @@ function ProductDetailScreen() {
                 : '-'}
             </Text>
           </View>
-          <Text style={styles.targetPrice}>목표가 {formatPrice(product.targetPrice)}</Text>
+          {/* 목표가 + 수정 버튼 */}
+          <View style={styles.targetPriceRow}>
+            <Text style={styles.targetPrice}>목표가 {formatPrice(product.targetPrice)}</Text>
+            <TouchableOpacity style={styles.editButton} onPress={handlePressEditTargetPrice}>
+              <Ionicons name="create-outline" size={13} color={TEXT.SUB} />
+              <Text style={styles.editButtonText}>목표 가격 수정</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.divider} />
@@ -110,6 +145,15 @@ function ProductDetailScreen() {
 
         {errorMessage !== '' ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
       </ScrollView>
+
+      {/* 목표 가격 수정 팝업 */}
+      <TargetPriceModal
+        visible={isTargetPriceModalOpen}
+        targetPrice={product.targetPrice}
+        currentLowestPrice={product.currentLowestPrice}
+        onClose={handleCloseTargetPriceModal}
+        onSave={handleSaveTargetPrice}
+      />
     </SafeAreaView>
   );
 }
@@ -171,9 +215,30 @@ const styles = StyleSheet.create({
     color: TEXT.STRONG,
     letterSpacing: -0.6,
   },
-  targetPrice: {
+  // 목표가와 수정 버튼을 한 줄에 좌우로 배치
+  targetPriceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: 4,
+  },
+  targetPrice: {
     fontSize: 13,
+    color: TEXT.SUB,
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 32,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: LINE.DEFAULT,
+  },
+  editButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
     color: TEXT.SUB,
   },
   divider: {

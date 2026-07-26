@@ -168,6 +168,8 @@ export async function previewPrice(url) {
   return {
     currentPrice: data.currentPrice,
     mall: mallTypeToLabel(data.mallType),
+    // 서버가 상품 이미지를 함께 보내주면 그대로 넘김 (없으면 빈 값)
+    imageUrl: data.imageUrl || '',
   };
 }
 
@@ -186,6 +188,17 @@ export async function updateProductAlert(productId, alertEnabled) {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ alertEnabled: alertEnabled }),
+  });
+
+  const priceHistory = await request('/api/products/' + updatedProduct.id + '/price-history');
+  return toProduct(updatedProduct, priceHistory);
+}
+
+export async function updateProductTargetPrice(productId, targetPrice) {
+  const updatedProduct = await request('/api/products/' + productId + '/target-price', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ targetPrice: targetPrice }),
   });
 
   const priceHistory = await request('/api/products/' + updatedProduct.id + '/price-history');

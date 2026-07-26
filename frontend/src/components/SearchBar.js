@@ -2,13 +2,18 @@
 // onPress를 받으면 '누르면 다른 화면으로 넘어가는 검색창'이 되고, 안 받으면 직접 입력하는 검색창이 됩니다.
 
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Keyboard, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import PropTypes from 'prop-types';
 import { SURFACE, TEXT } from '../colors';
 
 // 검색창
 function SearchBar({ placeholder, value = '', onChangeText = null, onPress = null }) {
+  // 키보드의 완료키를 눌렀을 때 실행
+  function handlePressDone() {
+    Keyboard.dismiss();
+  }
+
   // 누르면 검색 화면으로 넘어가는 검색창 (홈에서 사용)
   if (onPress !== null) {
     return (
@@ -29,6 +34,8 @@ function SearchBar({ placeholder, value = '', onChangeText = null, onPress = nul
         placeholderTextColor={TEXT.WEAK}
         value={value}
         onChangeText={onChangeText}
+        returnKeyType="done" // 키보드 자판에 '완료' 키를 띄움
+        onSubmitEditing={handlePressDone} // 완료 키를 누르면 키보드를 내림
       />
     </View>
   );

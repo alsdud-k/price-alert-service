@@ -6,6 +6,7 @@ import {
   fetchProducts,
   markNotificationAsRead,
   updateProductAlert,
+  updateProductTargetPrice,
 } from '../api/client';
 
 // 화면들이 꺼내 쓸 저장소를 만듭니다.
@@ -128,6 +129,23 @@ function WatchlistProvider({ children }) {
     }
   }
 
+  // 목표 가격을 새 값으로 바꿈 (상품 상세 화면의 '목표 가격 수정'에서 사용)
+  // 목록을 한곳에서 관리하므로 홈·관심상품의 목표가와 상태 배지도 함께 바뀝니다
+  async function updateTargetPrice(productId, newTargetPrice) {
+    const updatedProduct = await updateProductTargetPrice(productId, newTargetPrice);
+
+    setWatchedProducts(function (previousList) {
+      return previousList.map(function (product) {
+        if (product.id === productId) {
+          return updatedProduct;
+        }
+        return product;
+      });
+    });
+
+    return updatedProduct;
+  }
+
   async function readNotification(notificationId) {
     try {
       const updatedNotification = await markNotificationAsRead(notificationId);
@@ -155,6 +173,7 @@ function WatchlistProvider({ children }) {
     addProduct: addProduct,
     removeProduct: removeProduct,
     toggleAlert: toggleAlert,
+    updateTargetPrice: updateTargetPrice,
     readNotification: readNotification,
   };
 
