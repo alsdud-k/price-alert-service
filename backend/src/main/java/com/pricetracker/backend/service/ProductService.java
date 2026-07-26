@@ -45,6 +45,9 @@ public class ProductService {
 		// 최초 현재가 크롤링 (실패해도 등록은 진행, currentPrice 는 null)
 		Optional<Long> initialPrice = priceCrawlingService.crawlPrice(request.url(), mallType);
 
+		// 상품 대표 이미지 크롤링 (실패해도 등록은 진행, imageUrl 은 null)
+		Optional<String> imageUrl = priceCrawlingService.crawlImage(request.url(), mallType);
+
 		Product product = new Product(
 			request.name(),
 			request.url(),
@@ -53,6 +56,7 @@ public class ProductService {
 			request.targetPrice(),
 			TEMP_USER_ID
 		);
+		product.setImageUrl(imageUrl.orElse(null));
 		if (request.alertEnabled() != null) {
 			product.setAlertEnabled(request.alertEnabled());
 		}
@@ -61,8 +65,8 @@ public class ProductService {
 		// 크롤링 성공 시 이력 저장 + 목표가 조건 즉시 평가
 		initialPrice.ifPresent(price -> priceCheckService.recordAndEvaluate(product, price));
 
-		log.info("상품 등록 - id={}, name={}, mallType={}, currentPrice={}",
-			product.getId(), product.getName(), mallType, product.getCurrentPrice());
+		log.info("상품 등록 - id={}, name={}, mallType={}, currentPrice={}, imageUrl={}",
+			product.getId(), product.getName(), mallType, product.getCurrentPrice(), product.getImageUrl());
 
 		return ProductResponse.from(product);
 	}
@@ -73,6 +77,12 @@ public class ProductService {
 		return productRepository.findAllByOrderByCreatedAtDesc().stream()
 			.map(ProductResponse::from)
 			.toList();
+	}
+
+	/** 관심 상품 단건 조회 */
+	@Transactional(readOnly = true)
+	public ProductResponse getProduct(Long productId) {
+		return ProductResponse.from(findProductOrThrow(productId));
 	}
 
 	/** 목표 가격 수정 */

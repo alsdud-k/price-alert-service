@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import AuthStack from './AuthStack';
 import MainTab from './MainTab';
+import ProductDetailScreen from '../screens/ProductDetailScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -14,6 +15,7 @@ function RootStack() {
     <Stack.Navigator initialRouteName="인증" screenOptions={{ headerShown: false }}>
       <Stack.Screen name="인증" component={AuthStack} />
       <Stack.Screen name="메인" component={MainTab} />
+      <Stack.Screen name="상품상세" component={ProductDetailScreen} />
     </Stack.Navigator>
   );
 }

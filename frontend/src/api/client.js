@@ -77,10 +77,12 @@ function toProduct(product, priceHistory = []) {
     name: product.name,
     url: product.url,
     mall: mallTypeToLabel(product.mallType),
-    imageUrl: '',
+    imageUrl: product.imageUrl || '',
     currentLowestPrice: product.currentPrice,
     targetPrice: product.targetPrice,
     priceHistory: priceHistoryValues,
+    // 그래프 화면에서 날짜 축을 그릴 수 있도록 가격+시각 쌍을 그대로 보존
+    priceHistoryDetailed: priceHistory,
     status: status,
     isAlertOn: product.alertEnabled,
     createdAt: product.createdAt,
@@ -167,6 +169,12 @@ export async function previewPrice(url) {
     currentPrice: data.currentPrice,
     mall: mallTypeToLabel(data.mallType),
   };
+}
+
+export async function fetchProduct(productId) {
+  const product = await request('/api/products/' + productId);
+  const priceHistory = await request('/api/products/' + productId + '/price-history');
+  return toProduct(product, priceHistory);
 }
 
 export async function deleteProduct(productId) {
