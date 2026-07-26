@@ -77,7 +77,7 @@ function toProduct(product, priceHistory = []) {
     name: product.name,
     url: product.url,
     mall: mallTypeToLabel(product.mallType),
-    imageUrl: '',
+    imageUrl: product.imageUrl || '',
     currentLowestPrice: product.currentPrice,
     targetPrice: product.targetPrice,
     priceHistory: priceHistoryValues,
