@@ -67,6 +67,41 @@ public class PriceCrawlingService {
 		}
 	}
 
+	/**
+	 * 주어진 URL 에서 상품 대표 이미지를 크롤링한다.
+	 * 몰별 셀렉터 대신 대부분의 쇼핑몰이 제공하는 og:image 메타 태그를 사용해 범용적으로 추출한다.
+	 * @return 크롤링 성공 시 이미지 URL, 실패 시 Optional.empty()
+	 */
+	public Optional<String> crawlImage(String url, MallType mallType) {
+		if (mallType == null || mallType == MallType.UNKNOWN) {
+			log.warn("이미지 크롤링 스킵 - 지원하지 않는 몰입니다. url={}", url);
+			return Optional.empty();
+		}
+
+		try {
+			Document doc = Jsoup.connect(url)
+				.userAgent(crawlingProperties.getUserAgent())
+				.timeout(crawlingProperties.getTimeoutMs())
+				.get();
+
+			Element ogImage = doc.selectFirst("meta[property=og:image]");
+			if (ogImage != null) {
+				String imageUrl = ogImage.attr("content");
+				if (!imageUrl.isBlank()) {
+					log.info("이미지 크롤링 성공 - url={}, imageUrl={}", url, imageUrl);
+					return Optional.of(imageUrl);
+				}
+			}
+
+			log.warn("이미지 크롤링 실패 - og:image 태그를 찾지 못했습니다. url={}", url);
+			return Optional.empty();
+
+		} catch (Exception e) {
+			log.warn("이미지 크롤링 실패 - url={}, reason={}", url, e.getMessage());
+			return Optional.empty();
+		}
+	}
+
 	/** "1,234,000원" 같은 텍스트에서 숫자만 뽑아 가격으로 변환한다. */
 	private Optional<Long> parsePrice(String text) {
 		if (text == null) {

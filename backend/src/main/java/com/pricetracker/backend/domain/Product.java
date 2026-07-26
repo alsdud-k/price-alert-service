@@ -33,6 +33,10 @@ public class Product {
 	@Column(length = 1000)
 	private String url;
 
+	// 크롤링된 상품 대표 이미지 URL. 크롤링 실패 시 null 일 수 있다.
+	@Column(length = 1000)
+	private String imageUrl;
+
 	// 몰 종류 (URL 도메인으로 자동 판별)
 	@Enumerated(EnumType.STRING)
 	private MallType mallType;
