@@ -79,6 +79,12 @@ public class ProductService {
 			.toList();
 	}
 
+	/** 관심 상품 단건 조회 */
+	@Transactional(readOnly = true)
+	public ProductResponse getProduct(Long productId) {
+		return ProductResponse.from(findProductOrThrow(productId));
+	}
+
 	/** 목표 가격 수정 */
 	@Transactional
 	public ProductResponse updateTargetPrice(Long productId, Long targetPrice) {

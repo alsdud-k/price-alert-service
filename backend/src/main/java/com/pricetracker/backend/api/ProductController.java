@@ -46,6 +46,12 @@ public class ProductController {
 		return productService.getProducts();
 	}
 
+	/** 관심 상품 단건 조회 (상세 화면용) */
+	@GetMapping("/{id}")
+	public ProductResponse get(@PathVariable Long id) {
+		return productService.getProduct(id);
+	}
+
 	/** 목표 가격 수정 */
 	@PatchMapping("/{id}/target-price")
 	public ProductResponse updateTargetPrice(
