@@ -117,6 +117,11 @@ function HomeScreen({ navigation }) {
             toggleAlert(product.id);
           }
 
+          // 상품 줄을 눌렀을 때: 상품 상세 화면으로 이동
+          function handlePressCard() {
+            navigation.navigate('상품상세', { productId: product.id });
+          }
+
           return (
             <ProductCard
               key={product.id}
@@ -129,6 +134,7 @@ function HomeScreen({ navigation }) {
               priceHistory={product.priceHistory}
               isAlertOn={product.isAlertOn}
               onToggleAlert={handleToggleThisAlert}
+              onPress={handlePressCard}
             />
           );
         })}

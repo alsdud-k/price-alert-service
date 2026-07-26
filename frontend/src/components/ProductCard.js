@@ -23,6 +23,7 @@ function ProductCard({
   isAlertOn = true,
   onToggleAlert = null,
   onDelete = null,
+  onPress = null,
   showGraph = false,
 }) {
   // 알림이 켜져 있으면 검은 채운 종, 꺼져 있으면 흐린 빈 종
@@ -56,7 +57,7 @@ function ProductCard({
   }
 
   return (
-    <View style={styles.row}>
+    <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={onPress ? 0.6 : 1}>
       {/* 왼쪽: 상품 이미지 */}
       <PlaceholderImage size={64} uri={imageUrl} />
 
@@ -108,7 +109,7 @@ function ProductCard({
           <MiniLineGraph data={priceHistory} lineColor={graphLineColor} />
         </View>
       ) : null}
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -123,6 +124,7 @@ ProductCard.propTypes = {
   isAlertOn: PropTypes.bool, // 알림 켜짐/꺼짐
   onToggleAlert: PropTypes.func, // 종을 눌렀을 때 실행할 함수
   onDelete: PropTypes.func, // 삭제 버튼을 눌렀을 때 실행할 함수 (없으면 버튼이 안 보임)
+  onPress: PropTypes.func, // 카드 전체를 눌렀을 때 실행할 함수 (상품 상세로 이동)
   showGraph: PropTypes.bool, // 오른쪽 그래프 표시 여부
 };
 
