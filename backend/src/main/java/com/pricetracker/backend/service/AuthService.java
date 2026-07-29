@@ -6,11 +6,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.pricetracker.backend.domain.User;
 import com.pricetracker.backend.dto.AuthResponse;
+import com.pricetracker.backend.dto.FindIdRequest;
+import com.pricetracker.backend.dto.FindIdResponse;
 import com.pricetracker.backend.dto.LoginRequest;
 import com.pricetracker.backend.dto.SignupRequest;
 import com.pricetracker.backend.dto.UserResponse;
 import com.pricetracker.backend.exception.DuplicateResourceException;
 import com.pricetracker.backend.exception.InvalidCredentialsException;
+import com.pricetracker.backend.exception.ResourceNotFoundException;
 import com.pricetracker.backend.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -36,6 +39,7 @@ public class AuthService {
 
 		User user = new User(
 			request.userId(),
+			request.name(),
 			request.email(),
 			passwordEncoder.encode(request.password())
 		);
@@ -55,6 +59,14 @@ public class AuthService {
 		}
 
 		return toAuthResponse(user);
+	}
+
+	/** 아이디 찾기 */
+	@Transactional(readOnly = true)
+	public FindIdResponse findUserId(FindIdRequest request) {
+		User user = userRepository.findByNameAndEmail(request.name(), request.email())
+			.orElseThrow(() -> new ResourceNotFoundException("일치하는 회원 정보를 찾을 수 없습니다."));
+		return new FindIdResponse(user.getUserId());
 	}
 
 	/** 로그아웃 */

@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.pricetracker.backend.dto.AuthResponse;
+import com.pricetracker.backend.dto.FindIdRequest;
+import com.pricetracker.backend.dto.FindIdResponse;
 import com.pricetracker.backend.dto.LoginRequest;
 import com.pricetracker.backend.dto.SignupRequest;
 import com.pricetracker.backend.service.AuthService;
@@ -34,6 +36,12 @@ public class AuthController {
 	@PostMapping("/login")
 	public AuthResponse login(@Valid @RequestBody LoginRequest request) {
 		return authService.login(request);
+	}
+
+	/** 아이디 찾기 */
+	@PostMapping("/find-id")
+	public FindIdResponse findId(@Valid @RequestBody FindIdRequest request) {
+		return authService.findUserId(request);
 	}
 
 	/** 로그아웃 */

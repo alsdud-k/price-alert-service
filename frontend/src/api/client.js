@@ -221,9 +221,18 @@ export async function signupUser(user) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       userId: user.userId,
+      name: user.name,
       password: user.password,
       email: user.email,
     }),
+  });
+}
+
+export async function findUserId(name, email) {
+  return request('/api/auth/find-id', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name, email: email }),
   });
 }
 

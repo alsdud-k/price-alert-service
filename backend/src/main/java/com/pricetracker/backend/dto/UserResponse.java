@@ -8,6 +8,7 @@ import com.pricetracker.backend.domain.User;
 public record UserResponse(
 	Long id,
 	String userId,
+	String name,
 	String email,
 	LocalDateTime createdAt
 ) {
@@ -15,6 +16,7 @@ public record UserResponse(
 		return new UserResponse(
 			user.getId(),
 			user.getUserId(),
+			user.getName(),
 			user.getEmail(),
 			user.getCreatedAt()
 		);

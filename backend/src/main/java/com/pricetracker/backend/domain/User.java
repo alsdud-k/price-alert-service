@@ -27,6 +27,9 @@ public class User {
 	@Column(nullable = false, unique = true, length = 50)
 	private String userId;
 
+	@Column(nullable = false, length = 50)
+	private String name;
+
 	@Column(nullable = false, unique = true, length = 255)
 	private String email;
 
@@ -35,8 +38,9 @@ public class User {
 
 	private LocalDateTime createdAt;
 
-	public User(String userId, String email, String passwordHash) {
+	public User(String userId, String name, String email, String passwordHash) {
 		this.userId = userId;
+		this.name = name;
 		this.email = email;
 		this.passwordHash = passwordHash;
 	}

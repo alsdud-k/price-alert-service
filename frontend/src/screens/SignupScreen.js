@@ -1,4 +1,4 @@
-// 회원가입 화면. (아이디·비밀번호·이메일 입력)
+// 회원가입 화면. (아이디·이름·비밀번호·이메일 입력)
 
 import React, { useState } from 'react';
 import {
@@ -22,6 +22,7 @@ import { SURFACE, LINE, TEXT, BUTTON } from '../colors';
 // 회원가입 화면
 function SignupScreen({ navigation }) {
   const [userId, setUserId] = useState('');
+  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [email, setEmail] = useState('');
@@ -70,6 +71,7 @@ function SignupScreen({ navigation }) {
     try {
       await signupUser({
         userId: userId.trim(),
+        name: name.trim(),
         password: password,
         email: email.trim(),
       });
@@ -101,6 +103,12 @@ function SignupScreen({ navigation }) {
               value={userId}
               onChangeText={setUserId}
               placeholder="사용할 아이디를 입력하세요"
+            />
+            <FormInput
+              label="이름"
+              value={name}
+              onChangeText={setName}
+              placeholder="이름을 입력하세요"
             />
             <FormInput
               label="비밀번호"
