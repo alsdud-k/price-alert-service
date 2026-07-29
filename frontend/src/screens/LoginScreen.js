@@ -1,6 +1,6 @@
 // 로그인 화면. (앱을 켜면 가장 먼저 보임)
 
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PropTypes from 'prop-types';
@@ -9,10 +9,12 @@ import FormInput from '../components/FormInput';
 import MessageModal from '../components/MessageModal';
 import { loginUser } from '../api/client';
 import { setAuthSession } from '../store/AuthSession';
+import { WatchlistContext } from '../store/WatchlistContext';
 import { SURFACE, LINE, TEXT, POINT, BUTTON } from '../colors';
 
 // 로그인 화면
 function LoginScreen({ navigation }) {
+  const { reloadData } = useContext(WatchlistContext);
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,8 +58,11 @@ function LoginScreen({ navigation }) {
     try {
       const auth = await loginUser({ userId: userId.trim(), password: password });
       await setAuthSession(auth);
-      const rootNavigation = navigation.getParent(); // 한 단계 위(RootStack)
       const nextRoute = auth.user && auth.user.temporaryPassword ? '비밀번호변경' : '메인';
+      if (nextRoute === '메인') {
+        await reloadData();
+      }
+      const rootNavigation = navigation.getParent(); // 한 단계 위(RootStack)
       rootNavigation.reset({ index: 0, routes: [{ name: nextRoute }] }); // 뒤로가기로 로그인에 못 돌아가게 함
     } catch (error) {
       showPopup('로그인 실패', error.message);

@@ -13,4 +13,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
 	// 전체 목록을 최신 등록순으로 조회
 	List<Product> findAllByOrderByCreatedAtDesc();
+
+	// 특정 사용자의 목록을 최신 등록순으로 조회
+	List<Product> findByUserIdOrderByCreatedAtDesc(Long userId);
 }

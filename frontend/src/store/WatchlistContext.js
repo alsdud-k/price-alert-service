@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState } from 'react';
 import PropTypes from 'prop-types';
 import {
   deleteProduct as deleteProductFromServer,
@@ -9,37 +9,38 @@ import {
   updateProductTargetPrice,
 } from '../api/client';
 
-// 화면들이 꺼내 쓸 저장소를 만듭니다.
 export const WatchlistContext = createContext(null);
 
-// 저장소의 실제 값을 담아 아래 화면들에게 나눠주는 컴포넌트
 function WatchlistProvider({ children }) {
-  // 관심 상품 목록
   const [watchedProducts, setWatchedProducts] = useState([]);
-
-  // 알림 목록
   const [notifications, setNotifications] = useState([]);
-
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // 앱이 처음 켜질 때 관심 상품 목록을 불러옴
-  useEffect(function () {
-    loadInitialData();
-  }, []);
-
+  // 로그인 완료 후, 또는 세션 복원 후 명시적으로 호출됩니다.
   async function loadInitialData() {
     try {
       setIsLoading(true);
       setErrorMessage('');
-      const productList = await fetchProducts();
-      await loadNotifications();
+      const [productList, notificationList] = await Promise.all([
+        fetchProducts(),
+        fetchNotifications(),
+      ]);
       setWatchedProducts(productList);
+      setNotifications(notificationList);
     } catch (error) {
       setErrorMessage(error.message);
     } finally {
       setIsLoading(false);
     }
+  }
+
+  // 로그아웃 시 메모리에서 데이터 비움
+  function clearData() {
+    setWatchedProducts([]);
+    setNotifications([]);
+    setIsLoading(false);
+    setErrorMessage('');
   }
 
   async function loadNotifications() {
@@ -53,18 +54,15 @@ function WatchlistProvider({ children }) {
     }
   }
 
-  // 관심 상품 하나를 목록 뒤에 추가 (등록 화면에서 사용)
   function addProduct(newProduct) {
     setWatchedProducts(function (previousList) {
       return [newProduct].concat(previousList);
     });
   }
 
-  // 관심 상품 하나를 목록에서 지움 (관심상품 화면의 휴지통 버튼에서 사용)
   async function removeProduct(productId) {
     await deleteProductFromServer(productId);
     setWatchedProducts(function (previousList) {
-      // 지울 상품만 빼고 나머지를 새 목록으로 만듦
       return previousList.filter(function (product) {
         return product.id !== productId;
       });
@@ -72,8 +70,6 @@ function WatchlistProvider({ children }) {
     await loadNotifications();
   }
 
-  // 종 아이콘을 눌렀을 때: 그 상품의 알림 켜짐/꺼짐을 뒤집음
-  // (목록을 한곳에서 관리하므로 홈과 관심상품의 종이 함께 바뀝니다)
   async function toggleAlert(productId) {
     const targetProduct = watchedProducts.find(function (product) {
       return product.id === productId;
@@ -85,13 +81,9 @@ function WatchlistProvider({ children }) {
     const nextAlertEnabled = !targetProduct.isAlertOn;
     setWatchedProducts(function (previousList) {
       const newList = [];
-
-      // 목록을 하나씩 보면서 누른 상품만 알림 상태를 바꿈
       for (let i = 0; i < previousList.length; i = i + 1) {
         const product = previousList[i];
-
         if (product.id === productId) {
-          // 기존 상품을 복사한 뒤 알림 켜짐/꺼짐만 반대로 바꿈
           const updatedProduct = Object.assign({}, product);
           updatedProduct.isAlertOn = nextAlertEnabled;
           newList.push(updatedProduct);
@@ -99,7 +91,6 @@ function WatchlistProvider({ children }) {
           newList.push(product);
         }
       }
-
       return newList;
     });
 
@@ -129,11 +120,8 @@ function WatchlistProvider({ children }) {
     }
   }
 
-  // 목표 가격을 새 값으로 바꿈 (상품 상세 화면의 '목표 가격 수정'에서 사용)
-  // 목록을 한곳에서 관리하므로 홈·관심상품의 목표가와 상태 배지도 함께 바뀝니다
   async function updateTargetPrice(productId, newTargetPrice) {
     const updatedProduct = await updateProductTargetPrice(productId, newTargetPrice);
-
     setWatchedProducts(function (previousList) {
       return previousList.map(function (product) {
         if (product.id === productId) {
@@ -142,7 +130,6 @@ function WatchlistProvider({ children }) {
         return product;
       });
     });
-
     return updatedProduct;
   }
 
@@ -162,13 +149,13 @@ function WatchlistProvider({ children }) {
     }
   }
 
-  // 화면들이 꺼내 쓸 값
   const value = {
     watchedProducts: watchedProducts,
     notifications: notifications,
     isLoading: isLoading,
     errorMessage: errorMessage,
     reloadData: loadInitialData,
+    clearData: clearData,
     reloadNotifications: loadNotifications,
     addProduct: addProduct,
     removeProduct: removeProduct,
@@ -181,7 +168,7 @@ function WatchlistProvider({ children }) {
 }
 
 WatchlistProvider.propTypes = {
-  children: PropTypes.node, // 이 저장소로 감싸는 화면들
+  children: PropTypes.node,
 };
 
 export default WatchlistProvider;

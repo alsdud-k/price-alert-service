@@ -1,6 +1,6 @@
 // 비밀번호 변경 화면. (임시 비밀번호로 로그인한 경우 강제 노출)
 
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -16,10 +16,12 @@ import ScreenHeader from '../components/ScreenHeader';
 import FormInput from '../components/FormInput';
 import MessageModal from '../components/MessageModal';
 import { changePassword } from '../api/client';
-import { setAuthSession, getAuthSession } from '../store/AuthSession';
+import { setAuthSession } from '../store/AuthSession';
+import { WatchlistContext } from '../store/WatchlistContext';
 import { SURFACE, LINE, TEXT, BUTTON } from '../colors';
 
 function ChangePasswordScreen({ navigation }) {
+  const { reloadData } = useContext(WatchlistContext);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
@@ -52,15 +54,11 @@ function ChangePasswordScreen({ navigation }) {
       return;
     }
 
-    const auth = getAuthSession();
     setIsSubmitting(true);
     try {
-      const updatedAuth = await changePassword(
-        currentPassword,
-        newPassword,
-        auth ? auth.accessToken : null
-      );
+      const updatedAuth = await changePassword(currentPassword, newPassword);
       await setAuthSession(updatedAuth);
+      await reloadData();
       showPopup('변경 완료', '비밀번호가 변경되었습니다.', function () {
         navigation.reset({ index: 0, routes: [{ name: '메인' }] });
       });

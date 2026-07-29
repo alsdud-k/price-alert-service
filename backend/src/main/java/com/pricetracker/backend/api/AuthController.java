@@ -1,8 +1,5 @@
 package com.pricetracker.backend.api;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -10,7 +7,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 import com.pricetracker.backend.dto.AuthResponse;
 import com.pricetracker.backend.dto.ChangePasswordRequest;
@@ -21,6 +17,7 @@ import com.pricetracker.backend.dto.FindPasswordResponse;
 import com.pricetracker.backend.dto.LoginRequest;
 import com.pricetracker.backend.dto.SignupRequest;
 import com.pricetracker.backend.service.AuthService;
+import com.pricetracker.backend.service.AuthTokenService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 public class AuthController {
 
 	private final AuthService authService;
+	private final AuthTokenService authTokenService;
 
 	/** 회원가입 */
 	@PostMapping("/signup")
@@ -63,7 +61,7 @@ public class AuthController {
 	public AuthResponse changePassword(
 			@RequestHeader("Authorization") String authorizationHeader,
 			@Valid @RequestBody ChangePasswordRequest request) {
-		String userId = extractUserIdFromToken(authorizationHeader);
+		String userId = authTokenService.extractUserId(authorizationHeader);
 		return authService.changePassword(userId, request);
 	}
 
@@ -74,19 +72,4 @@ public class AuthController {
 		return ResponseEntity.noContent().build();
 	}
 
-	/** Bearer 토큰의 payload(userId)를 추출 */
-	private String extractUserIdFromToken(String authorizationHeader) {
-		if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증 토큰이 필요합니다.");
-		}
-		try {
-			String token = authorizationHeader.substring(7);
-			String encodedPayload = token.split("\\.")[0];
-			String payload = new String(Base64.getUrlDecoder().decode(encodedPayload), StandardCharsets.UTF_8);
-			// payload 형식: userId:loginId:expiresAt
-			return payload.split(":")[1];
-		} catch (Exception e) {
-			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다.");
-		}
-	}
 }

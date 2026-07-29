@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { decideStatus } from '../utils/priceUtils';
+import { getAuthSession } from '../store/AuthSession';
 
 function getDefaultBaseUrl() {
   if (Platform.OS === 'android') {
@@ -12,6 +13,19 @@ const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || getDefaultBaseUrl();
 
 function buildUrl(path) {
   return API_BASE_URL + path;
+}
+
+function getAuthHeader() {
+  const auth = getAuthSession();
+  if (auth && auth.accessToken) {
+    return { Authorization: 'Bearer ' + auth.accessToken };
+  }
+  return {};
+}
+
+async function authRequest(path, options = {}) {
+  const headers = { ...getAuthHeader(), ...(options.headers || {}) };
+  return request(path, { ...options, headers });
 }
 
 async function request(path, options = {}) {
@@ -131,10 +145,10 @@ function toNotification(alert) {
 }
 
 export async function fetchProducts() {
-  const products = await request('/api/products');
+  const products = await authRequest('/api/products');
   const productsWithHistory = await Promise.all(
     products.map(async function (product) {
-      const priceHistory = await request('/api/products/' + product.id + '/price-history');
+      const priceHistory = await authRequest('/api/products/' + product.id + '/price-history');
       return toProduct(product, priceHistory);
     })
   );
@@ -143,7 +157,7 @@ export async function fetchProducts() {
 }
 
 export async function createProduct(product) {
-  const savedProduct = await request('/api/products', {
+  const savedProduct = await authRequest('/api/products', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -154,12 +168,12 @@ export async function createProduct(product) {
     }),
   });
 
-  const priceHistory = await request('/api/products/' + savedProduct.id + '/price-history');
+  const priceHistory = await authRequest('/api/products/' + savedProduct.id + '/price-history');
   return toProduct(savedProduct, priceHistory);
 }
 
 export async function previewPrice(url) {
-  const data = await request('/api/price-check/preview', {
+  const data = await authRequest('/api/price-check/preview', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ url: url }),
@@ -168,50 +182,49 @@ export async function previewPrice(url) {
   return {
     currentPrice: data.currentPrice,
     mall: mallTypeToLabel(data.mallType),
-    // 서버가 상품 이미지를 함께 보내주면 그대로 넘김 (없으면 빈 값)
     imageUrl: data.imageUrl || '',
   };
 }
 
 export async function fetchProduct(productId) {
-  const product = await request('/api/products/' + productId);
-  const priceHistory = await request('/api/products/' + productId + '/price-history');
+  const product = await authRequest('/api/products/' + productId);
+  const priceHistory = await authRequest('/api/products/' + productId + '/price-history');
   return toProduct(product, priceHistory);
 }
 
 export async function deleteProduct(productId) {
-  await request('/api/products/' + productId, { method: 'DELETE' });
+  await authRequest('/api/products/' + productId, { method: 'DELETE' });
 }
 
 export async function updateProductAlert(productId, alertEnabled) {
-  const updatedProduct = await request('/api/products/' + productId + '/alert-enabled', {
+  const updatedProduct = await authRequest('/api/products/' + productId + '/alert-enabled', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ alertEnabled: alertEnabled }),
   });
 
-  const priceHistory = await request('/api/products/' + updatedProduct.id + '/price-history');
+  const priceHistory = await authRequest('/api/products/' + updatedProduct.id + '/price-history');
   return toProduct(updatedProduct, priceHistory);
 }
 
 export async function updateProductTargetPrice(productId, targetPrice) {
-  const updatedProduct = await request('/api/products/' + productId + '/target-price', {
+  const updatedProduct = await authRequest('/api/products/' + productId + '/target-price', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ targetPrice: targetPrice }),
   });
 
-  const priceHistory = await request('/api/products/' + updatedProduct.id + '/price-history');
+  const priceHistory = await authRequest('/api/products/' + updatedProduct.id + '/price-history');
   return toProduct(updatedProduct, priceHistory);
 }
 
 export async function fetchNotifications() {
-  const alerts = await request('/api/alerts');
+  const alerts = await authRequest('/api/alerts');
   return alerts.map(toNotification);
 }
 
 export async function markNotificationAsRead(alertId) {
-  const alert = await request('/api/alerts/' + alertId + '/read', { method: 'PATCH' });
+  const alert = await authRequest('/api/alerts/' + alertId + '/read', { method: 'PATCH' });
   return toNotification(alert);
 }
 
@@ -247,13 +260,10 @@ export async function loginUser(user) {
   });
 }
 
-export async function changePassword(currentPassword, newPassword, accessToken) {
-  return request('/api/auth/change-password', {
+export async function changePassword(currentPassword, newPassword) {
+  return authRequest('/api/auth/change-password', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: 'Bearer ' + accessToken,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ currentPassword: currentPassword, newPassword: newPassword }),
   });
 }

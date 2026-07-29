@@ -30,7 +30,7 @@ function MyPageScreen() {
   const navigation = useNavigation();
 
   // 저장소에서 등록된 상품 목록과 알림 목록을 가져옴 (개수 계산용)
-  const { watchedProducts, notifications } = useContext(WatchlistContext);
+  const { watchedProducts, notifications, clearData } = useContext(WatchlistContext);
 
   // 내 정보(아이디·이메일)
   const [profile, setProfile] = useState({ userId: '', email: '' });
@@ -72,6 +72,7 @@ function MyPageScreen() {
     }
 
     await clearAuthSession();
+    clearData();
     // 마이페이지는 메인 탭 안에 있으므로, 한 단계 위(RootStack)를 가져옴
     const rootNavigation = navigation.getParent();
     // '인증' 묶음(로그인부터 시작)으로 새로 깔아서 뒤로가기로 못 돌아가게 함

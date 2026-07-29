@@ -11,6 +11,9 @@ public interface AlertRepository extends JpaRepository<Alert, Long> {
 	// 알림 내역을 최신순으로 조회
 	List<Alert> findAllByOrderByCreatedAtDesc();
 
+	// 특정 사용자 상품의 알림만 최신순으로 조회
+	List<Alert> findByProduct_UserIdOrderByCreatedAtDesc(Long userId);
+
 	// 중복 알림 방지: 해당 상품에 아직 읽지 않은 알림이 있는지 확인
 	boolean existsByProductIdAndIsReadFalse(Long productId);
 

@@ -8,7 +8,9 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.pricetracker.backend.domain.User;
 
@@ -42,6 +44,22 @@ public class AuthTokenService {
 			return base64Url(mac.doFinal(payload.getBytes(StandardCharsets.UTF_8)));
 		} catch (Exception e) {
 			throw new IllegalStateException("토큰 생성에 실패했습니다.", e);
+		}
+	}
+
+	/** Bearer 헤더에서 userId(loginId) 추출 */
+	public String extractUserId(String authorizationHeader) {
+		if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증 토큰이 필요합니다.");
+		}
+		try {
+			String token = authorizationHeader.substring(7);
+			String encodedPayload = token.split("\\.")[0];
+			String payload = new String(Base64.getUrlDecoder().decode(encodedPayload), StandardCharsets.UTF_8);
+			// payload 형식: dbId:userId:expiresAt
+			return payload.split(":")[1];
+		} catch (Exception e) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다.");
 		}
 	}
 
