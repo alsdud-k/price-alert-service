@@ -247,6 +247,25 @@ export async function loginUser(user) {
   });
 }
 
+export async function changePassword(currentPassword, newPassword, accessToken) {
+  return request('/api/auth/change-password', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer ' + accessToken,
+    },
+    body: JSON.stringify({ currentPassword: currentPassword, newPassword: newPassword }),
+  });
+}
+
+export async function findPassword(userId, email) {
+  return request('/api/auth/find-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId: userId, email: email }),
+  });
+}
+
 export async function logoutUser(accessToken) {
   const headers = {};
   if (accessToken) {

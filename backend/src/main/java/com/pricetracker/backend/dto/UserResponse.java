@@ -10,6 +10,7 @@ public record UserResponse(
 	String userId,
 	String name,
 	String email,
+	boolean temporaryPassword,
 	LocalDateTime createdAt
 ) {
 	public static UserResponse from(User user) {
@@ -18,6 +19,7 @@ public record UserResponse(
 			user.getUserId(),
 			user.getName(),
 			user.getEmail(),
+			user.isTemporaryPassword(),
 			user.getCreatedAt()
 		);
 	}

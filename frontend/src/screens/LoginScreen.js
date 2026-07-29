@@ -57,7 +57,8 @@ function LoginScreen({ navigation }) {
       const auth = await loginUser({ userId: userId.trim(), password: password });
       await setAuthSession(auth);
       const rootNavigation = navigation.getParent(); // 한 단계 위(RootStack)
-      rootNavigation.reset({ index: 0, routes: [{ name: '메인' }] }); // 뒤로가기로 로그인에 못 돌아가게 함
+      const nextRoute = auth.user && auth.user.temporaryPassword ? '비밀번호변경' : '메인';
+      rootNavigation.reset({ index: 0, routes: [{ name: nextRoute }] }); // 뒤로가기로 로그인에 못 돌아가게 함
     } catch (error) {
       showPopup('로그인 실패', error.message);
     } finally {

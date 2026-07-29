@@ -36,6 +36,9 @@ public class User {
 	@Column(nullable = false, length = 255)
 	private String passwordHash;
 
+	@Column(nullable = false)
+	private boolean temporaryPassword = false;
+
 	private LocalDateTime createdAt;
 
 	public User(String userId, String name, String email, String passwordHash) {
@@ -43,6 +46,11 @@ public class User {
 		this.name = name;
 		this.email = email;
 		this.passwordHash = passwordHash;
+	}
+
+	public void updatePasswordHash(String passwordHash, boolean isTemporary) {
+		this.passwordHash = passwordHash;
+		this.temporaryPassword = isTemporary;
 	}
 
 	@PrePersist

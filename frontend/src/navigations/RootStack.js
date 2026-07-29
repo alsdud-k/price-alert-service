@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AuthStack from './AuthStack';
 import MainTab from './MainTab';
 import ProductDetailScreen from '../screens/ProductDetailScreen';
+import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import { loadAuthSession } from '../store/AuthSession';
 
 const Stack = createNativeStackNavigator();
@@ -16,7 +17,13 @@ function RootStack() {
 
   useEffect(() => {
     loadAuthSession().then(function (auth) {
-      setInitialRoute(auth ? '메인' : '인증');
+      if (!auth) {
+        setInitialRoute('인증');
+      } else if (auth.user && auth.user.temporaryPassword) {
+        setInitialRoute('비밀번호변경');
+      } else {
+        setInitialRoute('메인');
+      }
     });
   }, []);
 
@@ -25,10 +32,11 @@ function RootStack() {
   }
 
   return (
-    <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
+    <Stack.Navigator id="root" initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
       <Stack.Screen name="인증" component={AuthStack} />
       <Stack.Screen name="메인" component={MainTab} />
       <Stack.Screen name="상품상세" component={ProductDetailScreen} />
+      <Stack.Screen name="비밀번호변경" component={ChangePasswordScreen} />
     </Stack.Navigator>
   );
 }
