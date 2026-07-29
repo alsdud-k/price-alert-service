@@ -71,7 +71,7 @@ function MyPageScreen() {
       console.warn('로그아웃 API 호출 실패:', error.message);
     }
 
-    clearAuthSession();
+    await clearAuthSession();
     // 마이페이지는 메인 탭 안에 있으므로, 한 단계 위(RootStack)를 가져옴
     const rootNavigation = navigation.getParent();
     // '인증' 묶음(로그인부터 시작)으로 새로 깔아서 뒤로가기로 못 돌아가게 함

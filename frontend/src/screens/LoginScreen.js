@@ -55,7 +55,7 @@ function LoginScreen({ navigation }) {
     setIsSubmitting(true);
     try {
       const auth = await loginUser({ userId: userId.trim(), password: password });
-      setAuthSession(auth);
+      await setAuthSession(auth);
       const rootNavigation = navigation.getParent(); // 한 단계 위(RootStack)
       rootNavigation.reset({ index: 0, routes: [{ name: '메인' }] }); // 뒤로가기로 로그인에 못 돌아가게 함
     } catch (error) {
